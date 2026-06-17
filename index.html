@@ -4,12 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Watchtower Dashboard</title>
-  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     body {
       font-family: system-ui, -apple-system, sans-serif;
       background: #f9f9f7;
@@ -17,11 +14,8 @@
       min-height: 100vh;
       padding: 1.5rem;
     }
-
     header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      display: flex; align-items: center; justify-content: space-between;
       margin-bottom: 1.25rem;
     }
     .logo { display: flex; align-items: center; gap: 10px; }
@@ -30,53 +24,27 @@
     .badge.live    { background: #f0fdf4; color: #16a34a; border-color: #bbf7d0; }
     .badge.offline { background: #f3f4f6; color: #9ca3af; border-color: #e5e7eb; }
     .coords { font-size: 13px; color: #9ca3af; }
-
     .cards {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-      gap: 10px;
-      margin-bottom: 1.25rem;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 10px; margin-bottom: 1.25rem;
     }
-    .card {
-      background: #ffffff;
-      border: 0.5px solid #e5e5e2;
-      border-radius: 10px;
-      padding: 12px 14px;
-    }
+    .card { background: #ffffff; border: 0.5px solid #e5e5e2; border-radius: 10px; padding: 12px 14px; }
     .card-label { font-size: 11px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
     .card-value { font-size: 18px; font-weight: 600; color: #1a1a1a; }
-
-    /* Real map container */
-    #map-wrap {
-      border: 0.5px solid #e5e5e2;
-      border-radius: 12px;
-      overflow: hidden;
-      margin-bottom: 1.25rem;
-      height: 420px;
-    }
+    .card-value.danger { color: #dc2626; }
+    #map-wrap { border: 0.5px solid #e5e5e2; border-radius: 12px; overflow: hidden; margin-bottom: 1.25rem; height: 420px; }
     #map { height: 100%; width: 100%; }
-
     .commands { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1.25rem; }
     .cmd-btn {
-      background: #ffffff;
-      border: 0.5px solid #d1d5db;
-      color: #374151;
-      border-radius: 8px;
-      padding: 7px 16px;
-      font-size: 13px;
-      cursor: pointer;
+      background: #ffffff; border: 0.5px solid #d1d5db; color: #374151;
+      border-radius: 8px; padding: 7px 16px; font-size: 13px; cursor: pointer;
       transition: background 0.15s, border-color 0.15s;
     }
     .cmd-btn:hover    { background: #f3f4f6; border-color: #9ca3af; }
     .cmd-btn.active   { background: #eff6ff; border-color: #3b82f6; color: #1d4ed8; font-weight: 500; }
     .cmd-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-    #log-wrap {
-      background: #ffffff;
-      border: 0.5px solid #e5e5e2;
-      border-radius: 12px;
-      padding: 14px 16px;
-    }
+    #log-wrap { background: #ffffff; border: 0.5px solid #e5e5e2; border-radius: 12px; padding: 14px 16px; }
     .log-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: #9ca3af; margin-bottom: 8px; }
     #log { max-height: 160px; overflow-y: auto; font-family: ui-monospace, monospace; font-size: 12px; line-height: 1.8; }
     .log-row    { display: flex; gap: 10px; }
@@ -85,11 +53,7 @@
     .log-success{ color: #16a34a; }
     .log-danger { color: #dc2626; }
     .log-warn   { color: #d97706; }
-
-    /* Leaflet popup tweak */
-    .leaflet-popup-content { font-family: system-ui, sans-serif; font-size: 13px; }
-    .threat-popup-close { color: #dc2626; font-weight: 600; }
-    .threat-popup-mid   { color: #d97706; font-weight: 600; }
+    .leaflet-popup-content { font-family: system-ui, sans-serif; font-size: 13px; line-height: 1.7; }
   </style>
 </head>
 <body>
@@ -104,20 +68,33 @@
     <h1>Watchtower</h1>
     <span id="status-badge" class="badge offline">offline</span>
   </div>
-  <span class="coords" id="base-coords">Base: 28.5355°N, 77.3910°E</span>
+  <span class="coords">Base: 28.5355°N, 77.3910°E</span>
 </header>
 
 <div class="cards">
-  <div class="card"><div class="card-label">Mode</div>          <div class="card-value" id="c-mode">—</div></div>
-  <div class="card"><div class="card-label">Distance</div>      <div class="card-value" id="c-dist">—</div></div>
-  <div class="card"><div class="card-label">Pan angle</div>     <div class="card-value" id="c-pan">—</div></div>
-  <div class="card"><div class="card-label">Night mode</div>    <div class="card-value" id="c-night">—</div></div>
-  <div class="card"><div class="card-label">Active threats</div><div class="card-value" id="c-threats">0</div></div>
+  <div class="card">
+    <div class="card-label">Active threats</div>
+    <div class="card-value danger" id="c-threats">0</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Last threat lat</div>
+    <div class="card-value" id="c-lat">—</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Last threat lon</div>
+    <div class="card-value" id="c-lon">—</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Total detected</div>
+    <div class="card-value" id="c-total">0</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Current mode</div>
+    <div class="card-value" id="c-mode">AUTO PATROL</div>
+  </div>
 </div>
 
-<div id="map-wrap">
-  <div id="map"></div>
-</div>
+<div id="map-wrap"><div id="map"></div></div>
 
 <div class="commands">
   <button class="cmd-btn active" data-cmd="AUTO_PATROL"  disabled>Auto patrol</button>
@@ -131,199 +108,173 @@
   <div id="log"><span style="color:#d1d5db">Waiting for connection…</span></div>
 </div>
 
+<!-- Load ALL scripts first, then init everything via window.onload -->
 <script>
-// ─── Config ──────────────────────────────────────────────────────────────────
-const MQTT_URL     = "wss://broker.emqx.io:8084/mqtt";
-const TELE_TOPIC   = "watchtower/telemetry/state";
-const THREAT_TOPIC = "watchtower/sensors/threats";
-const CMD_TOPIC    = "watchtower/commands/override";
-const BASE_LAT     = 28.5355;
-const BASE_LON     = 77.3910;
-const THREAT_TTL   = 15000;   // markers stay 15 seconds
-const MAX_THREATS  = 40;
+function loadScript(src, onload) {
+  const s = document.createElement("script");
+  s.src = src;
+  s.onload = onload;
+  document.head.appendChild(s);
+}
 
-// ─── State ───────────────────────────────────────────────────────────────────
-let currentMode = "AUTO_PATROL";
-let telemetry   = null;
-let threats     = [];   // { lat, lon, distance, angle, _ts, _marker }
-let mqttClient  = null;
-let panBeam     = null;
-
-// ─── DOM ─────────────────────────────────────────────────────────────────────
-const logEl      = document.getElementById("log");
-const badge      = document.getElementById("status-badge");
-const cMode      = document.getElementById("c-mode");
-const cDist      = document.getElementById("c-dist");
-const cPan       = document.getElementById("c-pan");
-const cNight     = document.getElementById("c-night");
-const cThreats   = document.getElementById("c-threats");
-const cmdButtons = document.querySelectorAll(".cmd-btn");
-
-// ─── Leaflet map setup ───────────────────────────────────────────────────────
-const map = L.map("map", { zoomControl: true }).setView([BASE_LAT, BASE_LON], 17);
-
-// OpenStreetMap tiles — free, no key needed
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
-  maxZoom: 19,
-}).addTo(map);
-
-// Base station marker (blue)
-const baseIcon = L.divIcon({
-  className: "",
-  html: `<div style="
-    width:18px; height:18px; border-radius:50%;
-    background:#2563eb; border:3px solid #dbeafe;
-    box-shadow:0 0 0 2px #2563eb;
-  "></div>`,
-  iconSize: [18, 18],
-  iconAnchor: [9, 9],
+// Chain: load Leaflet → then MQTT → then init app
+loadScript("https://unpkg.com/leaflet@1.9.4/dist/leaflet.js", function() {
+  loadScript("https://unpkg.com/mqtt/dist/mqtt.min.js", function() {
+    initApp();
+  });
 });
 
-L.marker([BASE_LAT, BASE_LON], { icon: baseIcon })
-  .addTo(map)
-  .bindPopup("<b>BASE STATION</b><br>Watchtower unit")
-  .openPopup();
+function initApp() {
+  // ─── Config ────────────────────────────────────────────────────────────────
+  const MQTT_URL     = "wss://broker.emqx.io:8084/mqtt";
+  const THREAT_TOPIC = "watchtower/sensors/threats";
+  const CMD_TOPIC    = "watchtower/commands/override";
+  const BASE_LAT     = 28.5355;
+  const BASE_LON     = 77.3910;
+  const THREAT_TTL   = 15000;
+  const MAX_THREATS  = 40;
 
-// Range rings around base
-L.circle([BASE_LAT, BASE_LON], { radius: 60,  color:"#dc2626", weight:1, fillOpacity:0.03 }).addTo(map);
-L.circle([BASE_LAT, BASE_LON], { radius: 120, color:"#d97706", weight:1, fillOpacity:0.02 }).addTo(map);
-L.circle([BASE_LAT, BASE_LON], { radius: 200, color:"#9ca3af", weight:1, dashArray:"5 5", fillOpacity:0 }).addTo(map);
+  // ─── State ─────────────────────────────────────────────────────────────────
+  let threats     = [];
+  let mqttClient  = null;
+  let totalCount  = 0;
+  let currentMode = "AUTO_PATROL";
+  let threatCounter = 0;
 
-// ─── Threat marker helper ────────────────────────────────────────────────────
-function makeThreatIcon(close) {
-  const col    = close ? "#dc2626" : "#d97706";
-  const border = close ? "#fecaca" : "#fde68a";
-  return L.divIcon({
-    className: "",
-    html: `<div style="
-      width:14px; height:14px; border-radius:50%;
-      background:${col}; border:2px solid ${border};
-      box-shadow:0 0 6px ${col}88;
-    "></div>`,
-    iconSize: [14, 14],
-    iconAnchor: [7, 7],
-  });
-}
+  // ─── DOM ───────────────────────────────────────────────────────────────────
+  const logEl    = document.getElementById("log");
+  const badge    = document.getElementById("status-badge");
+  const cThreats = document.getElementById("c-threats");
+  const cLat     = document.getElementById("c-lat");
+  const cLon     = document.getElementById("c-lon");
+  const cTotal   = document.getElementById("c-total");
+  const cMode    = document.getElementById("c-mode");
+  const cmdBtns  = document.querySelectorAll(".cmd-btn");
 
-function addThreatMarker(data) {
-  const close  = data.distance < 60;
-  const marker = L.marker([data.lat, data.lon], { icon: makeThreatIcon(close) })
-    .addTo(map)
-    .bindPopup(`
-      <span class="${close ? "threat-popup-close" : "threat-popup-mid"}">
-        ⚠ ${close ? "CLOSE THREAT" : "THREAT DETECTED"}
-      </span><br>
-      Distance: <b>${data.distance} cm</b><br>
-      Angle: <b>${data.angle}°</b><br>
-      Lat: ${Number(data.lat).toFixed(5)}<br>
-      Lon: ${Number(data.lon).toFixed(5)}
-    `);
+  // ─── Map ───────────────────────────────────────────────────────────────────
+  const map = L.map("map").setView([BASE_LAT, BASE_LON], 17);
 
-  return marker;
-}
-
-// ─── Pan beam line ───────────────────────────────────────────────────────────
-function updatePanBeam(servoX) {
-  if (panBeam) map.removeLayer(panBeam);
-  const angleDeg = servoX - 90;   // 0° = North when servo=90
-  const angleRad = (angleDeg * Math.PI) / 180;
-  const beamLen  = 0.0015;        // ~150m in lat/lon units
-  const endLat   = BASE_LAT + beamLen * Math.cos(angleRad);
-  const endLon   = BASE_LON + beamLen * Math.sin(angleRad);
-  panBeam = L.polyline([[BASE_LAT, BASE_LON], [endLat, endLon]], {
-    color: "#3b82f6", weight: 2, dashArray: "8 5", opacity: 0.75,
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
+    maxZoom: 19,
   }).addTo(map);
-}
 
-// ─── Logging ─────────────────────────────────────────────────────────────────
-function addLog(msg, type = "info") {
-  const ts  = new Date().toLocaleTimeString("en-IN", { hour12: false });
-  const row = document.createElement("div");
-  row.className = "log-row";
-  row.innerHTML = `<span class="log-ts">${ts}</span><span class="log-${type}">${msg}</span>`;
-  logEl.prepend(row);
-  while (logEl.children.length > 60) logEl.removeChild(logEl.lastChild);
-}
+  // Base station
+  const baseIcon = L.divIcon({
+    className: "",
+    html: `<div style="width:18px;height:18px;border-radius:50%;background:#2563eb;border:3px solid #dbeafe;box-shadow:0 0 0 2px #2563eb;"></div>`,
+    iconSize: [18, 18], iconAnchor: [9, 9],
+  });
+  L.marker([BASE_LAT, BASE_LON], { icon: baseIcon })
+    .addTo(map)
+    .bindPopup("<b>BASE STATION</b><br>Watchtower unit");
 
-// ─── MQTT ────────────────────────────────────────────────────────────────────
-function connect() {
+  // Range rings
+  L.circle([BASE_LAT, BASE_LON], { radius: 60,  color:"#dc2626", weight:1, fillOpacity:0.03 }).addTo(map);
+  L.circle([BASE_LAT, BASE_LON], { radius: 120, color:"#d97706", weight:1, fillOpacity:0.02 }).addTo(map);
+  L.circle([BASE_LAT, BASE_LON], { radius: 200, color:"#9ca3af", weight:1, dashArray:"5 5", fillOpacity:0 }).addTo(map);
+
+  // ─── Threat marker ─────────────────────────────────────────────────────────
+  function addThreatMarker(lat, lon) {
+    threatCounter++;
+    const id  = threatCounter;
+    const now = new Date().toLocaleTimeString("en-IN", { hour12: false });
+    const icon = L.divIcon({
+      className: "",
+      html: `<div style="width:14px;height:14px;border-radius:50%;background:#dc2626;border:2px solid #fecaca;box-shadow:0 0 8px #dc262688;"></div>`,
+      iconSize: [14, 14], iconAnchor: [7, 7],
+    });
+    return L.marker([lat, lon], { icon })
+      .addTo(map)
+      .bindPopup(`
+        <b style="color:#dc2626">⚠ THREAT #${id}</b><br>
+        <b>Lat:</b> ${lat.toFixed(5)}<br>
+        <b>Lon:</b> ${lon.toFixed(5)}<br>
+        <b>Detected:</b> ${now}
+      `);
+  }
+
+  // ─── Logging ───────────────────────────────────────────────────────────────
+  function addLog(msg, type = "info") {
+    const ts  = new Date().toLocaleTimeString("en-IN", { hour12: false });
+    const row = document.createElement("div");
+    row.className = "log-row";
+    row.innerHTML = `<span class="log-ts">${ts}</span><span class="log-${type}">${msg}</span>`;
+    logEl.prepend(row);
+    while (logEl.children.length > 60) logEl.removeChild(logEl.lastChild);
+  }
+
+  // ─── MQTT ──────────────────────────────────────────────────────────────────
   mqttClient = mqtt.connect(MQTT_URL, {
     clientId: "WATCHTOWER_UI_" + Math.random().toString(16).slice(2, 8),
-    clean: true,
-    reconnectPeriod: 3000,
+    clean: true, reconnectPeriod: 3000,
   });
 
   mqttClient.on("connect", () => {
     badge.textContent = "live";
-    badge.className = "badge live";
-    cmdButtons.forEach(b => b.disabled = false);
+    badge.className   = "badge live";
+    cmdBtns.forEach(b => b.disabled = false);
     addLog("Connected to broker.emqx.io", "success");
-    mqttClient.subscribe([TELE_TOPIC, THREAT_TOPIC]);
+    mqttClient.subscribe(THREAT_TOPIC);
   });
-
-  mqttClient.on("close",     () => { badge.textContent = "offline"; badge.className = "badge offline"; cmdButtons.forEach(b => b.disabled = true); addLog("Disconnected", "danger"); });
+  mqttClient.on("close",     () => { badge.textContent = "offline"; badge.className = "badge offline"; cmdBtns.forEach(b => b.disabled = true); addLog("Disconnected", "danger"); });
   mqttClient.on("reconnect", () => addLog("Reconnecting…", "warn"));
   mqttClient.on("error",     e  => addLog("Error: " + (e.message || e), "danger"));
 
   mqttClient.on("message", (topic, payload) => {
     try {
       const data = JSON.parse(payload.toString());
-      if (topic === TELE_TOPIC)   handleTelemetry(data);
       if (topic === THREAT_TOPIC) handleThreat(data);
     } catch (_) {}
   });
-}
 
-function sendCommand(cmd) {
-  if (!mqttClient || !mqttClient.connected) return;
-  mqttClient.publish(CMD_TOPIC, JSON.stringify({ command: cmd }));
-  currentMode = cmd;
-  cMode.textContent = cmd.replace(/_/g, " ");
-  cmdButtons.forEach(b => b.classList.toggle("active", b.dataset.cmd === cmd));
-  addLog("Command sent → " + cmd, "info");
-}
-
-cmdButtons.forEach(b => b.addEventListener("click", () => sendCommand(b.dataset.cmd)));
-
-// ─── Data handlers ───────────────────────────────────────────────────────────
-function handleTelemetry(data) {
-  telemetry = data;
-  cDist.textContent  = data.distance + " cm";
-  cPan.textContent   = data.servoX + "°";
-  cNight.textContent = data.nightMode ? "on" : "off";
-  updatePanBeam(data.servoX);
-}
-
-function handleThreat(data) {
-  const now    = Date.now();
-  const marker = addThreatMarker(data);
-  threats.unshift({ ...data, _ts: now, _marker: marker });
-  if (threats.length > MAX_THREATS) {
-    const old = threats.pop();
-    if (old._marker) map.removeLayer(old._marker);
+  // ─── Commands ──────────────────────────────────────────────────────────────
+  function sendCommand(cmd) {
+    if (!mqttClient || !mqttClient.connected) return;
+    mqttClient.publish(CMD_TOPIC, JSON.stringify({ command: cmd }));
+    currentMode = cmd;
+    cMode.textContent = cmd.replace(/_/g, " ");
+    cmdBtns.forEach(b => b.classList.toggle("active", b.dataset.cmd === cmd));
+    addLog("Command sent → " + cmd, "info");
   }
-  addLog(
-    `Threat  dist=${data.distance}cm  angle=${data.angle}°  (${Number(data.lat).toFixed(4)}, ${Number(data.lon).toFixed(4)})`,
-    "danger"
-  );
-}
+  cmdBtns.forEach(b => b.addEventListener("click", () => sendCommand(b.dataset.cmd)));
 
-// ─── Prune old threat markers ─────────────────────────────────────────────────
-setInterval(() => {
-  const now = Date.now();
-  threats = threats.filter(t => {
-    if (now - t._ts > THREAT_TTL) {
-      if (t._marker) map.removeLayer(t._marker);
-      return false;
+  // ─── Threat handler ────────────────────────────────────────────────────────
+  function handleThreat(data) {
+    const lat = Number(data.lat);
+    const lon = Number(data.lon);
+    if (isNaN(lat) || isNaN(lon)) return;
+
+    const marker = addThreatMarker(lat, lon);
+    threats.unshift({ lat, lon, _ts: Date.now(), _marker: marker });
+    if (threats.length > MAX_THREATS) {
+      const old = threats.pop();
+      if (old._marker) map.removeLayer(old._marker);
     }
-    return true;
-  });
-  cThreats.textContent = threats.length;
-}, 1000);
 
-// ─── Init ────────────────────────────────────────────────────────────────────
-connect();
+    totalCount++;
+    cTotal.textContent = totalCount;
+    cLat.textContent   = lat.toFixed(5);
+    cLon.textContent   = lon.toFixed(5);
+    map.panTo([lat, lon]);
+    addLog(`Threat #${totalCount}  lat=${lat.toFixed(4)}  lon=${lon.toFixed(4)}`, "danger");
+  }
+
+  // ─── Prune old markers ─────────────────────────────────────────────────────
+  setInterval(() => {
+    const now = Date.now();
+    threats = threats.filter(t => {
+      if (now - t._ts > THREAT_TTL) {
+        if (t._marker) map.removeLayer(t._marker);
+        return false;
+      }
+      return true;
+    });
+    cThreats.textContent = threats.length;
+  }, 1000);
+
+  addLog("App initialized, waiting for ESP32…", "info");
+}
 </script>
 </body>
 </html>
